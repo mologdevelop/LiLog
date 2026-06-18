@@ -1,4 +1,4 @@
-# MoLog
+# LiLog
 
 **Logs on the Go!**
 
@@ -13,7 +13,7 @@
 
 When you're on a road test or at a workshop, sometimes you just need to quickly check a CAN signal without opening a laptop.
 
-**MoLog** is a lightweight, offline-first tool that puts DBC parsing and signal visualization in your pocket.
+**LiLog** is a lightweight, offline-first tool that puts DBC parsing and signal visualization in your pocket.
 
 ---
 
@@ -39,11 +39,18 @@ When you're on a road test or at a workshop, sometimes you just need to quickly 
 | Chart — Split View | ✓ | ✓ |
 | Chart — Overlay (Multi-Signal) | ✗ | ✓ |
 
-### Trial & Pricing
+### Plans & Pricing
 
-- **3-day full-feature free trial** — no subscription required, all features unlocked from the moment you download
-- **Lifetime** — one-time purchase, pay once and own forever
-- **Launch discount** available for early adopters — redeem a promo code at checkout
+Two ways to go Premium:
+
+- **Monthly Subscription** — recurring monthly billing, cancel anytime. No long-term commitment.
+- **Lifetime** — one-time purchase, pay once and own forever. Best value for long-term users.
+
+Both plans unlock the full Premium feature set above.
+
+**3-day free trial** — starts when you first open the app. All Premium features unlocked immediately, no credit card required. If the trial ends without a purchase, advanced features become limited.
+
+**Launch discount** available for early adopters — redeem a promo code at checkout.
 
 ---
 
@@ -58,7 +65,8 @@ When you're on a road test or at a workshop, sometimes you just need to quickly 
 
 - [x] MVP: Offline log viewing
 - [x] DBC parsing
-- [x] Multi-file comparison
+- [x] Multi-signal comparison
+- [ ] CANFD support
 - [ ] mf4 format support
 - [ ] ARXML support
 

@@ -2,17 +2,17 @@
 
 # Terms of Service
 
-**Last Updated: June 1, 2026**
+**Last Updated: June 18, 2026**
 
 ## 1. Acceptance of Terms
 
-By downloading, installing, or using MoLog (the "App"), you agree to be bound by these Terms of Service ("Terms"). If you do not agree to these Terms, do not use the App.
+By downloading, installing, or using LiLog (the "App"), you agree to be bound by these Terms of Service ("Terms"). If you do not agree to these Terms, do not use the App.
 
-These Terms are between you and the individual developer of MoLog ("we", "our", or "us").
+These Terms are between you and the individual developer of LiLog ("we", "our", or "us").
 
 ## 2. Description of Service
 
-MoLog is a local CAN bus log analysis tool that allows you to:
+LiLog is a local CAN bus log analysis tool that allows you to:
 
 - Import and parse CAN bus trace files (BLF, ASC formats)
 - Decode CAN signals using DBC definition files
@@ -33,7 +33,12 @@ You agree to:
 
 ### 4.1 Purchase Model
 
-MoLog offers premium features as a one-time lifetime purchase. Pricing is displayed within the App at the point of purchase. Once purchased, premium features are unlocked permanently without any recurring fees.
+LiLog offers premium features through two purchase options:
+
+- **Monthly Subscription** — recurring monthly billing. Premium features remain unlocked as long as the subscription is active. You can cancel anytime through your Apple ID or Google Account subscription settings.
+- **Lifetime** — one-time purchase. Premium features are unlocked permanently without any recurring fees.
+
+Pricing for both options is displayed within the App at the point of purchase.
 
 ### 4.2 Payment Processing
 
@@ -49,7 +54,9 @@ We do not process refunds directly. Refund requests are handled by Apple (App St
 
 ## 5. Free Trial
 
-We offer a 3-day free trial for new users. During the trial period, you have full access to all premium features. After the trial ends, you will need to purchase the lifetime license to continue using premium features. Only one free trial is available per user.
+We offer a 3-day free trial for new users. The trial begins when you first open the App — no purchase or credit card required. During the trial period, you have full access to all premium features.
+
+After the trial ends, premium features become limited. You can restore full access by purchasing either a Monthly Subscription or a Lifetime license. Only one free trial is available per user.
 
 ## 6. Intellectual Property
 
@@ -89,4 +96,4 @@ For questions about these Terms, please contact us:
 
 ---
 
-© 2026 MoLog. All rights reserved.
+© 2026 LiLog. All rights reserved.
