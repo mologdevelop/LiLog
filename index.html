@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LiLog — Offline CAN Bus Log Analyzer</title>
+  <meta name="description" content="An offline CAN bus log analysis tool for automotive engineers. DBC signal decoding, multi-signal chart overlay — all on your iPhone." />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&family=JetBrains+Mono:wght@400;500&display=swap');
+
+    * { box-sizing: border-box; }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: #F7F6F3;
+      color: #1A1A18;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .mono { font-family: 'JetBrains Mono', 'SF Mono', monospace; }
+
+    /* Feature grid */
+    .feat-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      border: 1px solid #D6D4CC;
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    .feat-cell {
+      padding: 28px 24px;
+      border-right: 1px solid #D6D4CC;
+      border-bottom: 1px solid #D6D4CC;
+    }
+    .feat-cell:nth-child(2n) { border-right: none; }
+    .feat-cell:nth-child(3),
+    .feat-cell:nth-child(4) { border-bottom: none; }
+
+    /* Spec grid */
+    .spec-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      border: 1px solid #D6D4CC;
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    .spec-cell {
+      padding: 20px 18px;
+      border-right: 1px solid #D6D4CC;
+    }
+    .spec-cell:last-child { border-right: none; }
+
+    /* Pricing table */
+    .pricing-grid {
+      display: grid;
+      grid-template-columns: 240px 1fr 1fr;
+      border: 1px solid #D6D4CC;
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    .pricing-row {
+      display: contents;
+    }
+    .pricing-row > div {
+      padding: 12px 18px;
+      border-bottom: 1px solid #D6D4CC;
+      font-size: 13px;
+    }
+    .pricing-row:last-child > div { border-bottom: none; }
+    .pricing-row > div:first-child {
+      font-weight: 500;
+      background: #FAFAF8;
+      color: #1A1A18;
+    }
+    .pricing-row > div:not(:first-child) {
+      text-align: center;
+      color: #6B6A65;
+    }
+    .pricing-row.header > div {
+      font-weight: 500;
+      color: #1A1A18;
+      font-size: 14px;
+      padding: 16px 18px;
+      background: #FAFAF8;
+    }
+    .pricing-check { color: #1A1A18; font-weight: 500; }
+    .pricing-cross { color: #C5C3BB; }
+
+    /* Plan cards */
+    .plan-card {
+      border: 1px solid #D6D4CC;
+      border-radius: 12px;
+      padding: 28px 24px;
+      text-align: center;
+      transition: border-color 0.2s;
+    }
+    .plan-card:hover { border-color: #1A1A18; }
+    .plan-card.featured {
+      border-color: #1A1A18;
+      border-width: 2px;
+    }
+
+    /* Screenshot grid */
+    .screenshot-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+    }
+    .screenshot-card {
+      border: 1px solid #D6D4CC;
+      border-radius: 12px;
+      overflow: hidden;
+      transition: transform 0.2s;
+    }
+    .screenshot-card:hover { transform: translateY(-2px); }
+    .screenshot-card img {
+      width: 100%;
+      display: block;
+    }
+    .screenshot-card .label {
+      padding: 10px 14px;
+      font-size: 12px;
+      color: #6B6A65;
+      background: #FAFAF8;
+      border-top: 1px solid #D6D4CC;
+    }
+
+    /* Scroll reveal */
+    .reveal {
+      opacity: 0;
+      transform: translateY(18px);
+      transition: opacity 0.5s ease, transform 0.5s ease;
+    }
+    .reveal.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    @media (max-width: 768px) {
+      .spec-grid { grid-template-columns: repeat(2, 1fr); }
+      .spec-cell:nth-child(2) { border-right: none; }
+      .spec-cell:nth-child(3) { border-right: 1px solid #D6D4CC; border-top: 1px solid #D6D4CC; }
+      .spec-cell:nth-child(4) { border-top: 1px solid #D6D4CC; border-right: none; }
+      .feat-grid { grid-template-columns: 1fr; }
+      .feat-cell { border-right: none; }
+      .feat-cell:nth-child(3) { border-bottom: 1px solid #D6D4CC; }
+      .screenshot-grid { grid-template-columns: repeat(2, 1fr); }
+      .pricing-grid { grid-template-columns: 160px 1fr 1fr; }
+      .plan-grid { grid-template-columns: 1fr !important; }
+      .nav-links { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<header class="sticky top-0 z-50 bg-[#F7F6F3] border-b border-[#D6D4CC]">
+  <div class="max-w-5xl mx-auto px-6 h-14 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <img src="assets/LiLog.png" alt="LiLog" class="w-7 h-7 rounded-lg" />
+      <span class="text-[15px] font-medium tracking-tight">LiLog</span>
+    </div>
+    <nav class="nav-links flex items-center gap-6">
+      <a href="#features" class="text-[13px] text-[#6B6A65] hover:text-[#1A1A18] transition-colors">Features</a>
+      <a href="#screenshots" class="text-[13px] text-[#6B6A65] hover:text-[#1A1A18] transition-colors">Screenshots</a>
+      <a href="#pricing" class="text-[13px] text-[#6B6A65] hover:text-[#1A1A18] transition-colors">Pricing</a>
+      <a href="#support" class="text-[13px] text-[#6B6A65] hover:text-[#1A1A18] transition-colors">Support</a>
+    </nav>
+    <a href="#" class="flex items-center gap-2 bg-[#1A1A18] text-white text-[13px] font-medium px-4 py-2 rounded-lg hover:bg-[#333] transition-colors">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
+      </svg>
+      App Store
+    </a>
+  </div>
+</header>
+
+<!-- HERO -->
+<section class="max-w-5xl mx-auto px-6 pt-20 pb-16 text-center">
+  <p class="mono text-[11px] text-[#9B9A95] tracking-widest uppercase mb-5">iOS — CAN Bus Log Analyzer</p>
+  <h1 class="text-[42px] font-medium leading-[1.1] tracking-tight mb-5">
+    Offline CAN analysis,<br>right in your pocket
+  </h1>
+  <p class="text-[15px] text-[#6B6A65] leading-relaxed mb-8 max-w-xl mx-auto">
+    A lightweight CAN bus log analyzer built for automotive engineers. DBC signal decoding, multi-signal chart overlay — no laptop needed on a road test.
+  </p>
+  <div class="flex items-center justify-center gap-3">
+    <a href="#" class="flex items-center gap-2 bg-[#1A1A18] text-white text-[14px] font-medium px-5 py-3 rounded-lg hover:bg-[#333] transition-colors">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
+      </svg>
+      Free Download
+    </a>
+    <a href="#features" class="text-[14px] text-[#6B6A65] hover:text-[#1A1A18] transition-colors border border-[#D6D4CC] px-5 py-3 rounded-lg">Learn More</a>
+  </div>
+</section>
+
+<!-- SPEC BAR -->
+<section class="border-t border-[#D6D4CC]">
+  <div class="max-w-5xl mx-auto px-6">
+    <div class="spec-grid reveal">
+      <div class="spec-cell">
+        <div class="mono text-[22px] font-medium text-[#1A1A18]">iOS 16+</div>
+        <div class="text-[12px] text-[#6B6A65] mt-1">Requirement</div>
+      </div>
+      <div class="spec-cell">
+        <div class="mono text-[22px] font-medium text-[#1A1A18]">Offline</div>
+        <div class="text-[12px] text-[#6B6A65] mt-1">No network needed</div>
+      </div>
+      <div class="spec-cell">
+        <div class="mono text-[22px] font-medium text-[#1A1A18]">DBC</div>
+        <div class="text-[12px] text-[#6B6A65] mt-1">Signal decoding</div>
+      </div>
+      <div class="spec-cell">
+        <div class="mono text-[22px] font-medium text-[#1A1A18]">BLF / ASC</div>
+        <div class="text-[12px] text-[#6B6A65] mt-1">Log formats</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section id="features" class="max-w-5xl mx-auto px-6 py-20">
+  <p class="mono text-[11px] text-[#9B9A95] tracking-widest uppercase mb-3">Core Features</p>
+  <h2 class="text-[28px] font-medium tracking-tight mb-10">Everything you need on the road</h2>
+  <div class="feat-grid reveal">
+    <div class="feat-cell">
+      <p class="mono text-[11px] text-[#9B9A95] mb-4">01</p>
+      <svg class="mb-3" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1A1A18" stroke-width="1.5">
+        <path d="M4 7v10c0 2 1 3 3 3h10c2 0 3-1 3-3V7M4 7c0-2 1-3 3-3h10c2 0 3 1 3 3M4 7h16M9 12l2 2 4-4"/>
+      </svg>
+      <h3 class="text-[14px] font-medium mb-2">DBC Signal Decoding</h3>
+      <p class="text-[13px] text-[#6B6A65] leading-relaxed">Import DBC files and automatically decode CAN messages into physical signal values. Multiple DBCs supported simultaneously.</p>
+    </div>
+    <div class="feat-cell">
+      <p class="mono text-[11px] text-[#9B9A95] mb-4">02</p>
+      <svg class="mb-3" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#BA7517" stroke-width="1.5">
+        <path d="M3 3v18h18M7 16l4-8 4 6 3-5"/>
+      </svg>
+      <h3 class="text-[14px] font-medium mb-2">Multi-Signal Chart Overlay</h3>
+      <p class="text-[13px] text-[#6B6A65] leading-relaxed">Overlay multiple signal waveforms on a shared time axis. Compare engine speed, vehicle speed, temperature, and more at a glance.</p>
+    </div>
+    <div class="feat-cell">
+      <p class="mono text-[11px] text-[#9B9A95] mb-4">03</p>
+      <svg class="mb-3" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1A1A18" stroke-width="1.5">
+        <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+      </svg>
+      <h3 class="text-[14px] font-medium mb-2">Offline-First Design</h3>
+      <p class="text-[13px] text-[#6B6A65] leading-relaxed">All parsing happens locally — your log data never leaves your device. Fully functional on road tests, in workshops, or anywhere without connectivity.</p>
+    </div>
+    <div class="feat-cell">
+      <p class="mono text-[11px] text-[#9B9A95] mb-4">04</p>
+      <svg class="mb-3" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1A1A18" stroke-width="1.5">
+        <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+      </svg>
+      <h3 class="text-[14px] font-medium mb-2">Quick Search & Filter</h3>
+      <p class="text-[13px] text-[#6B6A65] leading-relaxed">Jump to any timestamp, filter by CAN ID or channel, scan by signal value range. Find the data you care about in seconds.</p>
+    </div>
+  </div>
+</section>
+
+<!-- SCREENSHOTS -->
+<section id="screenshots" class="border-t border-[#D6D4CC]">
+  <div class="max-w-5xl mx-auto px-6 py-20">
+    <p class="mono text-[11px] text-[#9B9A95] tracking-widest uppercase mb-3">Screenshots</p>
+    <h2 class="text-[28px] font-medium tracking-tight mb-10">Clean, focused interface</h2>
+    <div class="screenshot-grid reveal">
+      <div class="screenshot-card">
+        <img src="assets/screenshots/filePage.png" alt="File Management" loading="lazy" />
+        <div class="label">File Management</div>
+      </div>
+      <div class="screenshot-card">
+        <img src="assets/screenshots/tracePage.png" alt="Message Browser" loading="lazy" />
+        <div class="label">Message Browser</div>
+      </div>
+      <div class="screenshot-card">
+        <img src="assets/screenshots/chartPage.png" alt="Chart Overlay" loading="lazy" />
+        <div class="label">Chart Overlay</div>
+      </div>
+      <div class="screenshot-card">
+        <img src="assets/screenshots/dbcPage.png" alt="DBC Management" loading="lazy" />
+        <div class="label">DBC Management</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PRICING -->
+<section id="pricing" class="border-t border-[#D6D4CC]">
+  <div class="max-w-5xl mx-auto px-6 py-20">
+    <p class="mono text-[11px] text-[#9B9A95] tracking-widest uppercase mb-3">Pricing</p>
+    <h2 class="text-[28px] font-medium tracking-tight mb-3">Free to start, upgrade anytime</h2>
+    <p class="text-[14px] text-[#6B6A65] mb-10">3-day free trial with full access to all premium features. No credit card required.</p>
+
+    <div class="pricing-grid reveal mb-12">
+      <div class="pricing-row header">
+        <div>Feature</div>
+        <div>Free</div>
+        <div>Premium</div>
+      </div>
+      <div class="pricing-row">
+        <div>Log file size</div>
+        <div>&lt; 30 MB</div>
+        <div class="pricing-check">Unlimited</div>
+      </div>
+      <div class="pricing-row">
+        <div>DBC files</div>
+        <div>Up to 3</div>
+        <div class="pricing-check">Unlimited</div>
+      </div>
+      <div class="pricing-row">
+        <div>DBC signal decoding</div>
+        <div class="pricing-check">✓</div>
+        <div class="pricing-check">✓</div>
+      </div>
+      <div class="pricing-row">
+        <div>Jump to time</div>
+        <div class="pricing-check">✓</div>
+        <div class="pricing-check">✓</div>
+      </div>
+      <div class="pricing-row">
+        <div>Channel / ID filter</div>
+        <div class="pricing-check">✓</div>
+        <div class="pricing-check">✓</div>
+      </div>
+      <div class="pricing-row">
+        <div>Chart — split view</div>
+        <div class="pricing-check">✓</div>
+        <div class="pricing-check">✓</div>
+      </div>
+      <div class="pricing-row">
+        <div>DBC-based filter</div>
+        <div class="pricing-cross">✗</div>
+        <div class="pricing-check">✓</div>
+      </div>
+      <div class="pricing-row">
+        <div>Signal value rule scan & jump</div>
+        <div class="pricing-cross">✗</div>
+        <div class="pricing-check">✓</div>
+      </div>
+      <div class="pricing-row">
+        <div>Chart — multi-signal overlay</div>
+        <div class="pricing-cross">✗</div>
+        <div class="pricing-check">✓</div>
+      </div>
+    </div>
+
+    <div class="plan-grid grid grid-cols-2 gap-6 reveal">
+      <div class="plan-card">
+        <p class="mono text-[11px] text-[#9B9A95] tracking-widest uppercase mb-3">Monthly</p>
+        <div class="mono text-[32px] font-medium text-[#1A1A18] mb-2">$6.99 / mo</div>
+        <p class="text-[13px] text-[#6B6A65] mb-6">Recurring billing, cancel anytime<br>No long-term commitment</p>
+        <a href="#" class="block w-full text-center text-[14px] font-medium border border-[#D6D4CC] px-5 py-3 rounded-lg hover:border-[#1A1A18] transition-colors">Coming Soon</a>
+      </div>
+      <div class="plan-card featured">
+        <div class="flex items-center justify-center gap-2 mb-3">
+          <p class="mono text-[11px] text-[#9B9A95] tracking-widest uppercase">Lifetime</p>
+          <span class="text-[10px] bg-[#1A1A18] text-white px-2 py-0.5 rounded-full">Best Value</span>
+        </div>
+        <div class="mono text-[32px] font-medium text-[#1A1A18] mb-2">$49.99</div>
+        <p class="text-[13px] text-[#6B6A65] mb-6">One-time purchase, own forever<br>Best for long-term users</p>
+        <a href="#" class="block w-full text-center text-[14px] font-medium bg-[#1A1A18] text-white px-5 py-3 rounded-lg hover:bg-[#333] transition-colors">Coming Soon</a>
+      </div>
+    </div>
+
+    <p class="text-center text-[12px] text-[#9B9A95] mt-6 reveal">Launch discount available for early adopters — follow <a href="https://x.com/MoLog_develop" class="text-[#6B6A65] hover:text-[#1A1A18] underline transition-colors">@MoLog_develop</a> for updates</p>
+  </div>
+</section>
+
+<!-- COMPAT -->
+<section id="compat" class="border-t border-[#D6D4CC]">
+  <div class="max-w-5xl mx-auto px-6 py-20 reveal">
+    <p class="mono text-[11px] text-[#9B9A95] tracking-widest uppercase mb-3">Compatibility</p>
+    <h2 class="text-[28px] font-medium tracking-tight mb-8">iPhone only, offline first</h2>
+    <div class="flex flex-wrap gap-3">
+      <div class="flex items-center gap-2 border border-[#D6D4CC] rounded-lg px-4 py-3 text-[13px] text-[#6B6A65]">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12" y2="18.01"/></svg>
+        iPhone
+      </div>
+      <div class="flex items-center gap-2 border border-[#D6D4CC] rounded-lg px-4 py-3 text-[13px] text-[#6B6A65]">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+        Fully Offline
+      </div>
+    </div>
+    <p class="text-[13px] text-[#6B6A65] mt-6 leading-relaxed">
+      Supports <strong>BLF</strong> and <strong>ASC</strong> log formats, <strong>DBC</strong> database files. CAN FD and mf4 format support coming soon.
+    </p>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="max-w-5xl mx-auto px-6 pb-20">
+  <div class="border border-[#D6D4CC] rounded-2xl p-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 reveal">
+    <div>
+      <h2 class="text-[22px] font-medium tracking-tight mb-2">Check CAN signals without opening your laptop</h2>
+      <p class="text-[14px] text-[#6B6A65]">Free download. Your data stays on your device — always.</p>
+    </div>
+    <a href="#" class="flex-shrink-0 flex items-center gap-2 bg-[#1A1A18] text-white text-[14px] font-medium px-6 py-3 rounded-lg hover:bg-[#333] transition-colors">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
+      </svg>
+      Download on the App Store
+    </a>
+  </div>
+</section>
+
+<!-- SUPPORT -->
+<section id="support" class="border-t border-[#D6D4CC]">
+  <div class="max-w-5xl mx-auto px-6 py-20">
+    <p class="mono text-[11px] text-[#9B9A95] tracking-widest uppercase mb-3">Support</p>
+    <h2 class="text-[28px] font-medium tracking-tight mb-10">Get in touch</h2>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 reveal">
+      <a href="https://x.com/MoLog_develop" target="_blank" rel="noopener" class="flex items-center gap-4 border border-[#D6D4CC] rounded-xl p-6 hover:border-[#1A1A18] transition-colors group">
+        <div class="w-10 h-10 bg-[#1A1A18] rounded-lg flex items-center justify-center flex-shrink-0">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+        </div>
+        <div>
+          <p class="text-[15px] font-medium text-[#1A1A18] group-hover:underline">X / Twitter</p>
+          <p class="text-[13px] text-[#6B6A65]">@MoLog_develop</p>
+        </div>
+      </a>
+      <a href="mailto:molog.develop@gmail.com" class="flex items-center gap-4 border border-[#D6D4CC] rounded-xl p-6 hover:border-[#1A1A18] transition-colors group">
+        <div class="w-10 h-10 bg-[#1A1A18] rounded-lg flex items-center justify-center flex-shrink-0">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M22 4l-10 7L2 4"/></svg>
+        </div>
+        <div>
+          <p class="text-[15px] font-medium text-[#1A1A18] group-hover:underline">Email</p>
+          <p class="text-[13px] text-[#6B6A65]">molog.develop@gmail.com</p>
+        </div>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="border-t border-[#D6D4CC]">
+  <div class="max-w-5xl mx-auto px-6 py-6 flex flex-col md:flex-row items-center justify-between gap-4">
+    <div class="flex items-center gap-5">
+      <a href="privacy_policy_en.html" class="text-[12px] text-[#9B9A95] hover:text-[#1A1A18] transition-colors">Privacy Policy</a>
+      <a href="terms_of_service_en.html" class="text-[12px] text-[#9B9A95] hover:text-[#1A1A18] transition-colors">Terms of Service</a>
+      <a href="mailto:molog.develop@gmail.com" class="text-[12px] text-[#9B9A95] hover:text-[#1A1A18] transition-colors">Contact Support</a>
+      <a href="https://x.com/MoLog_develop" class="text-[12px] text-[#9B9A95] hover:text-[#1A1A18] transition-colors">Twitter</a>
+    </div>
+    <p class="mono text-[11px] text-[#9B9A95]">© 2026 LiLog. All rights reserved.</p>
+  </div>
+</footer>
+
+<script>
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        e.target.classList.add('visible');
+        observer.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.1 });
+
+  document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+</script>
+</body>
+</html>
